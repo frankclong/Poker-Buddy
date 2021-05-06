@@ -2,60 +2,36 @@ from cards import Cards
 import heapq
 
 def bestHand(cards):
-    hand = 0
-    tiebreak = 0
-
     # Check for 5 card combos
-    # Royal flush
-    tiebreak = isRoyalFlush(cards)
-    if tiebreak:
-        hand = 9
-        return hand, tiebreak
-
-    # Straight flush
-    tiebreak = isStraightFlush(cards)
-    if tiebreak:
-        hand = 8
-        return hand, tiebreak
-
-    # Quad
-    tiebreak = isQuad(cards)
-    if tiebreak:
-        hand = 7
-        return hand, tiebreak
-
-    # Full House
-    tiebreak = isFullHouse(cards)
-    if tiebreak:
-        hand = 6
-        return hand, tiebreak
-
-    # Flush
-    tiebreak = isFlush(cards)
-    if tiebreak:
-        hand = 5
-        return hand, tiebreak
-    # Straight
-    tiebreak = isStraight(cards)
-    if tiebreak:
-        hand = 4
-        return hand, tiebreak
-    # 3s
-    tiebreak = isTriple(cards)
-    if tiebreak:
-        hand = 3
-        return hand, tiebreak
-    # 2pair
-    tiebreak = isTwoPair(cards)
-    if tiebreak:
-        hand = 2 
-        return hand, tiebreak
-    # double
-    tiebreak = isPair(cards)
-    if tiebreak:
-        hand = 1
-        return hand, tiebreak
-    # nothing
+    hand = isRoyalFlush(cards)
+    if hand:
+        return 9, hand
+    hand = isStraightFlush(cards)
+    if hand:
+        return 8, hand
+    hand = isQuad(cards)
+    if hand:
+        return 7, hand
+    hand = isFullHouse(cards)
+    if hand:
+        return 6, hand
+    hand = isFlush(cards)
+    if hand:
+        return 5, hand
+    hand = isStraight(cards)
+    if hand:
+        return 4, hand
+    hand = isTriple(cards)
+    if hand:
+        return 3, hand
+    hand = isTwoPair(cards)
+    if hand:
+        return 2, hand
+    hand = isPair(cards)
+    if hand:
+        return 1, hand
+    hand = isNothing(cards)
+    return 0, hand
 
 
 def isRoyalFlush(cards):
@@ -258,10 +234,8 @@ def isStraight(cards):
                     high -= 1
                 if len(hand) == 5:
                     return hand
-    print("none")
     return 0
 
-#TODO
 def isFullHouse(cards):
     hand = []
     vals = [c.value for c in cards]
@@ -284,7 +258,6 @@ def isFullHouse(cards):
     else:
         return 0
 
-#TODO
 def isTriple(cards):
     hand = []
     vals = [c.value for c in cards]
@@ -308,7 +281,6 @@ def isTriple(cards):
     else:
         return 0
 
-#TODO
 def isTwoPair(cards):
     hand = []
     vals = [c.value for c in cards]
@@ -333,7 +305,6 @@ def isTwoPair(cards):
     else:
         return 0
 
-#TODO
 def isPair(cards):
     hand = []
     vals = [c.value for c in cards]
@@ -357,7 +328,133 @@ def isPair(cards):
     else:
         return 0
 
-
 def isNothing(cards):
     hand = cards[-5:]
     return hand
+
+# Determine if hand1 is better than hand2
+def tiebreak(score, hand1, hand2):
+    vals1 = sorted([c.value for c in hand1])
+    vals2 = sorted([c.value for c in hand2])
+    if score == 1: # pair
+        # determine pair
+        for i in range(4):
+            if vals1[i] == vals1[i+1]:
+                p1 = vals1[i]
+        for i in range(4):
+            if vals2[i] == vals2[i+1]:
+                p2 = vals2[i]
+        if p1 > p2:
+            return 1
+        elif p2 > p1:
+            return -1
+        else:
+            for i in range(5):
+                if vals1[4-i] > vals2[4-i]:
+                    return 1
+                elif vals1[4-i] < vals2[4-i]:
+                    return -1
+        return 0
+
+    elif score == 2: # 2pair
+        highdoub1 = vals1[3]
+        highdoub2 = vals2[3]
+        if highdoub1 > highdoub2:
+            return 1
+        elif highdoub1 < highdoub2:
+            return -1
+        else:
+            lowdoub1 = vals1[1]
+            lowdoub2 = vals2[1]
+            if lowdoub1 > lowdoub2:
+                return 1
+            elif lowdoub1 < lowdoub2:
+                return -1
+            else:
+                # kicker - can only be in position 1, 3, 5 if sorted
+                if vals1[-1] > vals2[-1]:
+                    return 1
+                elif vals1[-1] < vals2[-1]:
+                    return -1
+                else:
+                    if vals1[2] > vals2[2]:
+                        return 1
+                    elif vals1[2] < vals2[2]:
+                        return -1
+                    else:
+                        if vals1[0] > vals2[0]:
+                            return 1
+                        elif vals1[0] < vals2[0]:
+                            return -1
+        return 0
+    elif score == 3: # triple
+        trip1 = vals1[2]
+        trip2 = vals2[2]
+        if trip1 > trip2:
+            return 1
+        elif trip1 < trip2:
+            return -1
+        else:
+            for i in range(5):
+                if vals1[4-i] > vals2[4-i]:
+                    return 1
+                elif vals1[4-i] < vals2[4-i]:
+                    return -1
+        return 0
+    elif score == 4 or score == 8 or score == 9: # straights
+        if max(vals1) > max(vals2):
+            return 1
+        elif max(vals1) < max(vals2):
+            return -1
+        else:
+            return 0
+    elif score == 0 or score == 5: #flush
+        for i in range(5):
+            if vals1[-i-1] > vals2[-i-1]:
+                return 1
+            elif vals1[-i-1] < vals2[-i-1]:
+                return -1
+        return 0
+    elif score == 6: # full house 
+        trip1 = vals1[2]
+        trip2  = vals2[2]
+        if trip1 > trip2:
+            return 1
+        elif trip1 < trip2:
+            return -1
+        else:
+            if vals1[0] == trip1:
+                doub1 = vals1[3]
+            else:
+                doub1 = vals1[0]
+            if vals2[0] == trip2:
+                doub2 = vals2[3]
+            else:
+                doub2 = vals2[0]
+            if doub1 > doub2:
+                return 1
+            elif doub1 < doub2:
+                return -1
+        return 0
+    elif score == 7: #quad
+        quad1 = vals1[2]
+        quad2 = vals2[2]  
+        if quad1 > quad2:
+            return 1
+        elif quad1 < quad2:
+            return -1
+        else:
+            if vals1[0] == quad1:
+                kicker1 = vals1[-1]
+            else:
+                kicker1 = vals1[0]
+            if vals2[0] == quad2:
+                kicker2 = vals2[-1]
+            else:
+                kicker2 = vals2[0]
+            if kicker1 > kicker2:
+                return 1
+            elif kicker1 < kicker2:
+                return -1
+        return 0
+    return 0
