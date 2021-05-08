@@ -1,5 +1,54 @@
-from cards import Cards
+from card import Card
 import heapq
+
+def cardCodeToCard(c):
+    if c[-1] == 'h':
+        return Card(int(c[:-1]), "hearts")
+    elif c[-1] == 's':
+        return Card(int(c[:-1]), "spades")
+    elif c[-1] == 'c':
+        return Card(int(c[:-1]), "clubs")
+    elif c[-1] == 'd':
+        return Card(int(c[:-1]), "diamonds")
+
+def compareOpponentHand(deck, community, score, hand):
+    wins = 0
+    losses = 0
+    ties = 0
+    num_remaining = len(deck.cards)
+    for i in range(num_remaining - 1):
+        cc1 = deck.cards[i]
+        for j in range(i+1, num_remaining):
+            cc2 = deck.cards[j]
+            opp_hand = [cardCodeToCard(cc1), cardCodeToCard(cc2)]
+            opp_cards = community.copy()
+            opp_cards.extend(opp_hand)
+            opp_cards = sorted(opp_cards, key=lambda x : x.value)
+            opp_score, opp_best_hand = bestHand(opp_cards)
+            if opp_score > score:
+                losses += 1
+            elif opp_score < score:
+                wins += 1
+            else: 
+                tb = tiebreak(score, hand, opp_best_hand)
+                if tb == 1:
+                    wins += 1
+                    #print('w')
+                elif tb == -1:
+                    losses += 1
+                    #print('l')
+                else:
+                    ties += 1
+                    #print('t')
+                #opp_card_list.show()
+                #print(cc1, cc2)
+                #print("-----------------------------------------------------------------------------")
+
+    #print("Wins: ", wins)
+    #print("Losses: ", losses)
+    #print("Ties: ", ties)
+    #print("Win/Tie %: ", (wins+ties)/(wins+ties+losses)*100)
+    return wins, losses, ties
 
 def bestHand(cards):
     # Check for 5 card combos

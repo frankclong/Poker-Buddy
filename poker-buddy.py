@@ -1,7 +1,6 @@
 from card import Card
-from cards import Cards
 from deck import Deck
-from pokerhands import bestHand, tiebreak
+from pokerhands import bestHand, tiebreak, compareOpponentHand
 import random
 import csv
 
@@ -15,80 +14,87 @@ def cardCodeToCard(c):
     elif c[-1] == 'd':
         return Card(int(c[:-1]), "diamonds")
 
+def showCards(cards):
+    for c in cards:
+        print(c.value, c.suit)
+
 # INPUTS
 my_deck = Deck()
 
 # Hand
-hand = [Card(5,"hearts"), Card(8, "spades")]
+hand = [Card(5,"hearts"), Card(8, "hearts")]
 # Flush
 flop = [Card(7, "hearts"), Card(10, "hearts"), Card(6,"hearts")]
 # Turn
 turn = Card(4,"spades")
 # River
-river = Card(14, "diamonds")
+#river = Card(14, "diamonds")
+river = 0
 
+# Initialize known community cards and remove from deck
 community = []
 for c in flop:
     community.append(c)
+    my_deck.remove(c)
 if turn:
     community.append(turn)
+    my_deck.remove(turn)
     if river:
         community.append(river)
-
-# Determine probability of winning hand
-cards = community.copy()
-cards.extend(hand)
-card_list = Cards(cards)
-card_list.sort()
-cards = card_list.cards
-
-# SCORE AND BEST HAND
-score, best_hand = bestHand(cards)
-
-# Generate opposing hands based on remaining cards in deck and compare scores with our best hand
-# Update deck
-for c in cards:
+        my_deck.remove(river)
+# Remove cards in hand from deck
+for c in hand:
     my_deck.remove(c)
 
-num_remaining = len(my_deck.cards)
-wins = 0
-losses = 0
-ties = 0
+total_wins = 0
+total_losses = 0
+total_ties = 0
 
-for i in range(num_remaining - 1):
-    cc1 = my_deck.cards[i]
-    for j in range(i+1, num_remaining):
-        cc2 = my_deck.cards[j]
-        opp_hand = [cardCodeToCard(cc1), cardCodeToCard(cc2)]
-        opp_cards = community.copy()
-        opp_cards.extend(opp_hand)
-        opp_card_list = Cards(opp_cards)
-        opp_card_list.sort()
-        opp_cards = opp_card_list.cards
-        opp_score, opp_best_hand = bestHand(opp_cards)
-        if opp_score > score:
-            losses += 1
-        elif opp_score < score:
-            wins += 1
-        else: 
-            tb = tiebreak(score, best_hand, opp_best_hand)
-            if tb == 1:
-                wins += 1
-                print('w')
-            elif tb == -1:
-                losses += 1
-                print('l')
-            else:
-                ties += 1
-                print('t')
-            #opp_card_list.show()
-            print(cc1, cc2)
-            print("-----------------------------------------------------------------------------")
+# Fill out community cards
+if not river:
+    for i in range(len(my_deck.cards)):
+        # draw a card and add to community
+        working_deck = my_deck.copy()
+        working_community = community.copy()
+        river = cardCodeToCard(my_deck.cards[i])
+        working_community.append(river)
+        working_deck.remove(river)
 
-print("Wins: ", wins)
-print("Losses: ", losses)
-print("Ties: ", ties)
-print("Win/Tie %: ", (wins+ties)/(wins+ties+losses)*100)
+        my_cards = working_community.copy()
+        my_cards.extend(hand)
+        my_cards = sorted(my_cards, key=lambda x : x.value)
 
+        # SCORE AND BEST HAND
+        score, best_hand = bestHand(my_cards)
+        
+        # Generate opposing hands based on remaining cards in deck and compare scores with our best hand
+        wins, losses, ties = compareOpponentHand(working_deck, working_community, score, best_hand)
+        total_wins += wins
+        total_losses += losses
+        total_ties += ties  
+else:
+    my_cards = community.copy()
+    my_cards.extend(hand)
+    my_cards = sorted(my_cards, key=lambda x : x.value)
+
+    # SCORE AND BEST HAND
+    score, best_hand = bestHand(my_cards)
+    
+    # Generate opposing hands based on remaining cards in deck and compare scores with our best hand
+    wins, losses, ties = compareOpponentHand(working_deck, working_community, score, best_hand)
+    total_wins += wins
+    total_losses += losses
+    total_ties += ties  
+
+print("Wins: ", total_wins)
+print("Losses: ", total_losses)
+print("Ties: ", total_ties)
+total_outcomes = total_wins + total_losses + total_ties
+win_percent = total_wins/total_outcomes
+tie_percent = total_ties/total_outcomes
+lose_percent = total_losses/total_outcomes
+print("Win/Tie %: ", win_percent+tie_percent)
+
+# TODO: expected value stuff
 pot_size = 500
 call_amount = 100
