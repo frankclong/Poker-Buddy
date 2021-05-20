@@ -52,34 +52,152 @@ def compareOpponentHand(deck, community, score, hand):
 
 def bestHand(cards):
     # Check for 5 card combos
-    hand = isRoyalFlush(cards)
-    if hand:
-        return 9, hand
-    hand = isStraightFlush(cards)
-    if hand:
-        return 8, hand
+    # Count number of occurences for each suit
+    hearts = []
+    spades = []
+    diamonds = []
+    clubs = []
+    for c in cards:
+        if c.suit == "hearts":
+            hearts.append(c)
+        elif c.suit == "spades":
+            spades.append(c)
+        elif c.suit == "diamonds":
+            diamonds.append(c)
+        else:
+            clubs.append(c)
+
+    # Determine if flush exists
+    if len(hearts) >= 5:
+        flush_cards = hearts
+    elif len(spades) >= 5:
+        flush_cards = spades
+    elif len(clubs) >= 5:
+        flush_cards = clubs
+    elif len(diamonds) >= 5:
+        flush_cards = diamonds
+    else:
+        flush_cards = 0
+
+    # If at least 5 occurences, look for a STRAIGHT FLUSH within those values
+    # Note: cards are sorted and since all cards are same suit, no duplicate values
+    # TODO: Checking for A-5 straight
+    if flush_cards:
+        if len(flush_cards) == 5:
+            if (flush_cards[4].value - flush_cards[0].value)==5:
+                return 8, flush_cards
+        if len(flush_cards) == 6:
+            if (flush_cards[5].value - flush_cards[1].value)==5:
+                return 8, flush_cards[-5:]
+            if (flush_cards[4].value - flush_cards[0].value)==5:
+                return 8, flush_cards[0:5]
+        if len(flush_cards) == 7:
+            if (flush_cards[6].value - flush_cards[2].value)==5:
+                return 8, flush_cards[-5:]
+            if (flush_cards[5].value - flush_cards[1].value)==5:
+                return 8, flush_cards[1:6]
+            if (flush_cards[4].value - flush_cards[0].value)==5:
+                return 8, flush_cards[0:5]
+
+        # Check if 14 is in cards
+        # Check if 2-5 exists
+        # If so, return 8 with A-5 of that suit
+
     hand = isQuad(cards)
     if hand:
         return 7, hand
-    hand = isFullHouse(cards)
-    if hand:
+
+    # Identifying triples and doubles
+    vals = [c.value for c in cards]
+    trip_vals = []
+    doub_vals = []
+    for v in set(vals):
+        if vals.count(v) == 3:
+            trip_vals.append(v)
+        if vals.count(v) == 2:
+            doub_vals.append(v)
+
+    # Full house
+    if trip_vals and doub_vals:
+        hand = []
+        max_trip_val = max(trip_vals)
+        max_doub_val = max(doub_vals)
+        # construct hand
+        for c in cards:
+            if c.value == max_trip_val or c.value == max_doub_val:
+                hand.append(c)
         return 6, hand
-    hand = isFlush(cards)
-    if hand:
-        return 5, hand
+    
+    # Flush
+    if flush_cards:
+        return 5, flush_cards[-5:] # 5 highest cards since they are sorted
+
+    # Straight
     hand = isStraight(cards)
     if hand:
         return 4, hand
-    hand = isTriple(cards)
-    if hand:
+    
+    # Triple
+    if trip_vals:
+        hand = []
+        max_trip_val = max(trip_vals)
+        # construct hand
+        kickers = 0
+        for c in reversed(cards):
+            if c.value == max_trip_val:
+                hand.append(c)
+            else:
+                if kickers < 2:
+                    hand.append(c)
+                    kickers += 1
         return 3, hand
-    hand = isTwoPair(cards)
-    if hand:
+    
+    # 2-pair
+    if len(doub_vals) >= 2:
+        hand = []
+        # determine which highest doubles
+        if len(doub_vals) == 2:
+            top_two_doub_vals = doub_vals
+        else:
+            top_two_doub_vals = []
+            if doub_vals[0] > doub_vals[1]:
+                if doub_vals[1] > doub_vals[2]:
+                    top_two_doub_vals = [doub_vals[0], doub_vals[1]]
+                else:
+                    top_two_doub_vals = [doub_vals[0], doub_vals[2]]
+            else:
+                if doub_vals[0] > doub_vals[2]:
+                    top_two_doub_vals = [doub_vals[0], doub_vals[1]]
+                else:
+                    top_two_doub_vals = [doub_vals[1], doub_vals[2]]
+        # construct hand
+        kickers = 0
+        for c in reversed(cards):
+            if c.value in top_two_doub_vals:
+                hand.append(c)
+            else:
+                if kickers < 1:
+                    hand.append(c)
+                    kickers += 1
         return 2, hand
-    hand = isPair(cards)
-    if hand:
+    
+    # 1-pair
+    if doub_vals:
+        hand = []
+        max_doub_val = max(doub_vals)
+        # construct hand
+        kickers = 0
+        for c in reversed(cards):
+            if c.value == max_doub_val:
+                hand.append(c)
+            else:
+                if kickers < 3:
+                    hand.append(c)
+                    kickers += 1
         return 1, hand
-    hand = isNothing(cards)
+
+    # High card
+    hand = cards[-5:] # if nothing else, just high card
     return 0, hand
 
 
@@ -150,8 +268,6 @@ def isStraightFlush(cards):
                 counter = 1
             if counter == 5:
                 return hearts[len(hearts)-i-2:len(hearts)-i+3]
-
-    
     if len(spades) >= 5:
         counter = 1 
         for i in range(len(spades) - 1):
@@ -239,25 +355,23 @@ def isFlush(cards):
         return 0
 
 def isQuad(cards):
+    # if quad exists, the 4th card in a sort set of 7 cards is always the value
     hand = []
-    to_check = len(cards)-3
-    for i in range(to_check):
-        val = cards[i].value
-        count = 1
-        for j in range(i+1, len(cards)):
-            new_val = cards[j].value
-            if new_val == val:
-                count += 1
-        if count == 4:
-            kicker = True
-            for c in reversed(cards):
-                if c.value == val:
+    qval = cards[3].value
+    count = 0
+    for i in range(len(cards)):
+        if qval == cards[i].value:
+            count += 1
+    if count == 4:
+        kicker = True
+        for c in reversed(cards):
+            if c.value == qval:
+                hand.append(c)
+            else:
+                if kicker:
                     hand.append(c)
-                else:
-                    if kicker:
-                        hand.append(c)
-                        kicker = False                      
-            return hand
+                    kicker = False                      
+        return hand
     return 0
 
 #TODO check for A low straight
@@ -337,8 +451,6 @@ def isTwoPair(cards):
     for v in set(vals):
         if vals.count(v) == 2:
             doub_vals.append(v)
-
-
     if len(doub_vals) >= 2:
         top_two_doub_vals = heapq.nlargest(2, doub_vals)
         # construct hand
@@ -377,9 +489,6 @@ def isPair(cards):
     else:
         return 0
 
-def isNothing(cards):
-    hand = cards[-5:]
-    return hand
 
 # Determine if hand1 is better than hand2
 def tiebreak(score, hand1, hand2):
