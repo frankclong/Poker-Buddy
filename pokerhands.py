@@ -133,6 +133,9 @@ def bestHand(cards):
         return 5, flush_cards[-5:] # 5 highest cards since they are sorted
 
     # Straight
+    # New algorithm idea:
+    # Remove duplicates and then use the checks from straight flush 
+    # Might be able to determine easily since the double and triple values were already found
     hand = isStraight(cards)
     if hand:
         return 4, hand
